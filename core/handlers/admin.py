@@ -1,6 +1,8 @@
-from aiogram import Router, F, Bot
+from aiogram import Router, F, Bot, types
+from aiogram.enums import ParseMode
 from aiogram.filters.command import Command, CommandObject
 from aiogram.filters import Filter, StateFilter
+from aiogram.enums.chat_type import ChatType
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -24,6 +26,14 @@ class AdminProtect(Filter):
     async def __call__(self, message: Message):
         return message.from_user.id in self.admins
 
+class FreeChatFilter(Filter):
+    def __init__(self) -> None:
+        self.freeChat = [ChatType.PRIVATE]
+
+    async def __call__(self, message: Message) -> bool:
+        return message.chat.type in (
+            self.freeChat
+        )
 
 class NewBotState(StatesGroup):
     add_name = State()
@@ -32,6 +42,9 @@ class NewBotState(StatesGroup):
 class BotStates(StatesGroup):
     edit_name = State()
     edit_content = State()
+
+class States(StatesGroup):
+    chat_mode = State()
 
 class WaitState(StatesGroup):
     wait_changed = State()
@@ -48,8 +61,15 @@ async def stop_bot(bot: Bot):
     await bot.send_message(settings.bots.admin_id, text='Bot stopped', disable_notification=True)
 
 
+@admin.message(Command('ai'), States.chat_mode)
+async def ai_close_dialogue(message: Message, state: FSMContext):
+    await message.reply(text='Конец диалога')
+    await state.clear()
+    await rq.del_bee_history(message.from_user.id)
+
+
 @admin.message(Command('ai'))
-async def ai_request(message: Message, command: CommandObject, bot: Bot):
+async def ai_request(message: Message, command: CommandObject, bot: Bot, state: FSMContext):
     reply_msg = message.reply_to_message
     reply_text = reply_msg.text if reply_msg and reply_msg.text else None
     reply_sticker = reply_msg.sticker.emoji if reply_msg and reply_msg.sticker else None
@@ -58,11 +78,12 @@ async def ai_request(message: Message, command: CommandObject, bot: Bot):
     prompt = " \n".join([f"{t}" for t in [reply_text, reply_sticker, command_text] if t is not None])
 
     if prompt.strip() == "":
-        await message.reply(text='Something wrong:(\nYou didn`t type any question')
+        await message.reply(text='Задавайте вопросы, я вас слушаю')
+        await state.set_state(States.chat_mode)
         return
 
     answer = await generate(tg_id=message.from_user.id, user_message=prompt)
-    await message.reply(text=answer)
+    await message.reply(text=answer, parse_mode=ParseMode.HTML)
 
 
 @admin.message(Command('botinfo'))
@@ -107,7 +128,7 @@ async def bot_info_by_id(callback: CallbackQuery, bot: Bot):
     user = await rq.get_user_by_tuid(tg_id=callback.from_user.id)
     system: SystemData = await rq.get_bee_system_by_id(system_id=system_id)
     text = await bot_text_by_classes(user=user, system=system)
-    await callback.message.answer(text=text, reply_markup=await kb.get_bot_settings(user=user, system=system))
+    await callback.message.edit_text(text=text, reply_markup=await kb.get_bot_settings(user=user, system=system))
     await callback.answer()
 
 
@@ -132,7 +153,7 @@ async def bot_list(callback: CallbackQuery, bot: Bot):
     text = 'Ваши боты:\n'
     for system in systems:
         text += f'{system.bot_name}\n'
-    await callback.message.answer(text=text, reply_markup=await kb.get_bot_list(systems=systems))
+    await callback.message.edit_text(text=text, reply_markup=await kb.get_bot_list(systems=systems))
     await callback.answer()
 
 
@@ -244,3 +265,18 @@ async def new_bot_content(message: Message, bot: Bot, state: FSMContext):
     bot_name = data.get('name')
     await rq.add_bee_system(tg_id=message.from_user.id, name=bot_name, content=bot_content)
     await bot.send_message(chat_id=message.from_user.id, text=f'Ваш новый бот \nBot: {bot_name}\nSetting: {bot_content if len(bot_content) < 50 else bot_content[::50] + "..."} \nAuthor: "You" \nBot is private', reply_markup=await kb.bot_info_buttons(message.from_user.id))
+    await state.clear()
+
+@admin.message(F.text, FreeChatFilter())
+async def ai_request(message: Message, bot: Bot, state: FSMContext):
+    reply_msg = message.reply_to_message
+    reply_text = reply_msg.text if reply_msg and reply_msg.text else None
+    reply_sticker = reply_msg.sticker.emoji if reply_msg and reply_msg.sticker else None
+    msg_text = message.text
+
+    prompt = " \n".join([f"{t}" for t in [reply_text, reply_sticker, msg_text] if t is not None])
+
+    answer = await generate(tg_id=message.from_user.id, user_message=prompt)
+    await message.reply(text=answer, parse_mode=ParseMode.HTML)
+
+

@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
 from core.database import requests as rq
 from core.utils.text import Text
@@ -23,3 +23,8 @@ async def cmd_start(message: Message, bot: Bot):
         menu_text = f'С возвращением, {message.from_user.username or message.from_user.full_name}!\n' + menu_text
     await rq.del_bee_history(message.from_user.id)
     await message.answer(text=menu_text, reply_markup=kb.project_info.as_markup())
+
+# Test command error (er)
+@user.message(Command("er"))
+async def cmd_error(message: Message):
+    i = int(message.text)

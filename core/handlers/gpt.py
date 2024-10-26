@@ -39,3 +39,21 @@ async def generate(tg_id: int, user_message: str):
     await rq.add_bee_history(tg_id=tg_id, role="assistant", content=answer)
     return answer
 
+# Generating a problem solution
+async def generate_solution(tg_id: int, problem: str, issue_filepath: str = None, language: str = "python"):
+    problem = f"Language: {language};\n" + problem.strip()
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": f"{settings.error.bot_content}"},
+        {"role": "user", "content": f"{problem}"}]
+    print(messages)
+    await rq.add_bee_history(tg_id=tg_id, role="user", content=problem)
+    completion = await client.chat.completions.create(
+        messages=messages,
+
+        model="gpt-3.5-turbo",
+        max_tokens=800
+    )
+    print(completion)
+    answer: str = completion.choices[0].message.content
+    await rq.add_bee_history(tg_id=tg_id, role="assistant", content=answer)
+    return answer

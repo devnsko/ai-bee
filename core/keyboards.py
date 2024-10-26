@@ -7,11 +7,7 @@ from core.database.models import SystemData, User
 cancel_button = KeyboardButton(text='Отмена')
 
 project_info = InlineKeyboardBuilder([
-    [InlineKeyboardButton(text='Github проекта', url=r'https://github.com/devnsko/ai-bee')]
-])
-
-bot_settings = InlineKeyboardBuilder([
-
+    [InlineKeyboardButton(text='Github проекта', url=r'https://github.com/devnsko/ai-bee')],
 ])
 
 # Reply keyboard with button "Cancel" for canceling the current operation
@@ -27,6 +23,7 @@ async def bot_info_buttons(tg_id):
     keyboard.add(InlineKeyboardButton(text=f'Edit Setting', callback_data=f'bot_edit_setting'))
     keyboard.add(InlineKeyboardButton(text=f'Full Setting', callback_data=f'bot_show_setting'))
     keyboard.add(InlineKeyboardButton(text=f'PUBLIC: {"ON✅" if system.is_public else "OFF"}', callback_data=f'bot_is_public'))
+    keyboard.resize_keyboard = True
     return keyboard.adjust(2).as_markup()
 
 
@@ -39,6 +36,7 @@ async def get_bot_list(systems: list[SystemData]):
         return None
     for system in systems:
         keyboard.add(InlineKeyboardButton(text=f'{system.bot_name}', callback_data=f'bot_info_{system.id}'))
+    keyboard.resize_keyboard = True
     return keyboard.adjust(2).as_markup()
 
 
@@ -49,4 +47,11 @@ async def get_bot_settings(user: User, system: SystemData):
         keyboard.add(InlineKeyboardButton(text=f'Подключить бота', callback_data=f'bot_connect_{system.id}'))
     keyboard.add(InlineKeyboardButton(text=f'Назад в список', callback_data=f'bot_list'))
     keyboard.add(InlineKeyboardButton(text=f'Глянуть настройку', callback_data=f'bot_show_setting_{system.id}'))
+    keyboard.resize_keyboard = True
     return keyboard.adjust(2).as_markup()
+
+
+# Inline keyboard for error
+error_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Решить', callback_data='error_solve')],
+], resize_keyboard=True)

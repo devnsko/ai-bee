@@ -19,6 +19,7 @@ class System:
 class Settings:
     bots: Bots
     basic: System
+    error: System
 
 
 def get_settings():
@@ -34,6 +35,12 @@ def get_settings():
             bot_name=os.getenv("BEE_BASIC_NAME"),
             bot_content=os.getenv("BEE_BASIC_CONTENT"),
             memory_count=int(os.getenv("BEE_BASIC_MEMORY_COUNT"))
+        ),
+        error=System(
+            bot_name=os.getenv("BEE_ERROR_NAME"),
+            bot_content=os.getenv("BEE_ERROR_CONTENT"),
+            memory_count=int(os.getenv("BEE_ERROR_MEMORY_COUNT"))
+
         )
     )
 
