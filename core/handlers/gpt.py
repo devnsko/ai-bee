@@ -2,8 +2,6 @@ from core.settings import settings
 import asyncio
 from openai import AsyncOpenAI
 from core.database import requests as rq
-from core.utils.text import Text
-
 
 client = AsyncOpenAI(
     # This is the default and can be omitted

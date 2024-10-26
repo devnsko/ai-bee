@@ -1,136 +1,107 @@
-# from core.database.models import async_session
-# from core.database.models import User, History, SystemData
-# from sqlalchemy import select, update, delete, desc, and_, or_
-# from datetime import datetime
+from core.database.models import async_session
+from core.database.models import User, ChatHistory, Bot
+from sqlalchemy import select, update, delete, desc, and_, or_
+from datetime import datetime
+
+async def check_user(tg_id: int):
+    async with async_session() as session:
+        async with session.begin():
+            user: User = await session.scalar(select(User).where(User.tg_id == tg_id))
+            return user is not None
+
+# Return user by telegram id or add new one if doesn't exist
+async def get_user(tg_id: int):
+    async with async_session() as session:
+        async with session.begin():
+            # Try to fetch the user with the given tg_id
+            user: User = await session.scalar(select(User).where(User.tg_id == tg_id))
+            # If the user does not exist, create a new one
+            if user is None:
+                user = User(tg_id=tg_id)
+                session.add(user)
+                await session.flush()  # Ensure user gets an ID and is ready to be returned
+    return user
+
+# Add new bot
+async def add_bot(tg_id: int, name: str, context: str):
+    async with async_session() as session:
+        async with session.begin():
+            user = await get_user(tg_id=tg_id)
+
+            new_bot = Bot(author_id=user.id, name=name, context=context, public=False)
+            session.add(new_bot)
+            await session.flush()
+            await session.execute(update(User).where(User.id == user.id).values(bot_id=new_bot.id))
 
 
-# # Add user to database
-# async def add_user(tg_id: int, username: str = None):
-#     async with async_session() as session:
-#         async with session.begin():
-#             user = await session.scalar(select(User).where(User.tg_id == tg_id))
+# Set bot to user
+async def set_bot(tg_id: int, bot_id: int):
+    async with async_session() as session:
+        async with session.begin():
+            user = await get_user(tg_id=tg_id)
+            await session.execute(update(User).where(User.id == user.id).values(bot_id=bot_id))
 
-#             if not user:
-#                 session.add(User(tg_id=tg_id, name=username))
-#                 session.commit()
-#                 return False
-#             return True
+#Edit bot
+async def edit_current_bot(tg_id: int, new_name: str, new_context: str):
+    async with async_session() as session:
+        async with session.begin():
+            user = await get_user(tg_id=tg_id)
+            await session.execute(update(Bot).where(Bot.id == user.bot_id).values(name=new_name,context=new_context))
 
-
-# # Get user by database id
-# async def get_user(u_id: int):
-#     async with async_session() as session:
-#         user: User = await session.scalar(select(User).where(User.id == u_id))
-#         return user
-
-# # Get user by telegram id
-# async def get_user_by_tuid(tg_id: int):
-#     async with async_session() as session:
-#         user: User = await session.scalar(select(User).where(User.tg_id == tg_id))
-#         if not user:
-#             user = session.add(User(tg_id=tg_id))
-#             await session.commit()
-#         return user
+# Get bot  which user is using
+async def get_bot(tg_id: int):
+    async with async_session() as session:
+        user = await get_user(tg_id=tg_id)
+        bot = await session.scalar(select(Bot).where(Bot.id == user.bot_id))
+        print(bot)
+        return bot
 
 
-# # Get user by username
-# async def get_user_by_name(username: str):
-#     async with async_session() as session:
-#         username = username.replace("@", "")
-#         user: User = await session.scalar(select(User).where(User.name == username))
-#         return user
+# Get bot  by id
+async def get_bot_by_id(bot_id: int):
+    async with async_session() as session:
+        bot = await session.scalar(select(Bot).where(Bot.id == bot_id))
+        return bot
 
 
-# # Add /AI chat history
-# async def add_bee_history(tg_id: int, role: str, content: str):
-#     async with async_session() as session:
-#         user: User = await get_user_by_tuid(tg_id=tg_id)
-#         session.add(History(u_id=user.id, role=role, content=content))
-#         await session.commit()
+# Set bot  to public or private
+async def switch_ispublic_bot(tg_id: int):
+    async with async_session() as session:
+        async with session.begin():
+            user = await get_user(tg_id=tg_id)
+            bot = await session.scalar(select(Bot).where(Bot.id == user.bot_id))
+            # Switch the value of is_public
+            switched = not bot.is_public
+            await session.execute(update(Bot).where(Bot.id == user.bot_id).values(is_public=switched))
 
 
-# # Get /AI chat history
-# async def get_bee_histories(tg_id: int, u_limit: int = 2):
-#     async with async_session() as session:
-#         user: User = await get_user_by_tuid(tg_id=tg_id)
-#         histories: list[History] = await session.scalars(select(History).where(History.u_id == user.id).order_by(desc(History.id)).limit(2*u_limit))
-#         return histories
+# Get list of all bots (bots) of user and public bots
+async def get_bot_list(tg_id: int):
+    async with async_session() as session:
+        user: User = await get_user(tg_id=tg_id)
+        result = await session.scalars(select(Bot).where(or_(Bot.author_id == user.id, Bot.is_public == True)).order_by(desc(Bot.id)).limit(10))
+        return result.all()
 
 
-# # Delete /AI chat history
-# async def del_bee_history(tg_id: int):
-#     async with async_session() as session:
-#         user: User = await get_user_by_tuid(tg_id=tg_id)
-#         await session.execute(delete(History).where(History.u_id == user.id))
-#         await session.commit()
+# Add /AI chat ChatHistory
+async def add_bee_ChatHistory(tg_id: int, role: str, content: str):
+    async with async_session() as session:
+        user: User = await get_user(tg_id=tg_id)
+        session.add(ChatHistory(u_id=user.id, role=role, content=content))
+        await session.commit()
 
 
-# # Add new bot (bee_system)
-# async def add_bee_system(tg_id: int, name: str, content: str, is_public: bool = False, memory_count: int = 2):
-#     async with async_session() as session:
-#         async with session.begin():
-#             user = await get_user_by_tuid(tg_id=tg_id)
-
-#             new_system = SystemData(author_id=user.id, bot_name=name, bot_content=content, is_public=is_public,
-#                                     memory_count=memory_count)
-#             session.add(new_system)
-#             await session.flush()
-#             await session.execute(update(User).where(User.id == user.id).values(system_id=new_system.id))
+# Get /AI chat ChatHistory
+async def get_bee_histories(tg_id: int, u_limit: int = 2):
+    async with async_session() as session:
+        user: User = await get_user(tg_id=tg_id)
+        histories: list[ChatHistory] = await session.scalars(select(ChatHistory).where(ChatHistory.u_id == user.id).order_by(desc(ChatHistory.id)).limit(2*u_limit))
+        return histories
 
 
-# # Set bot (bee_system) to user
-# async def set_bee_system(tg_id: int, system_id: int):
-#     async with async_session() as session:
-#         async with session.begin():
-#             user = await get_user_by_tuid(tg_id=tg_id)
-#             await session.execute(update(User).where(User.id == user.id).values(system_id=system_id))
-
-# #Save new name fot bot (bee_system)
-# async def edit_bee_system_name(tg_id: int, new_name: str):
-#     async with async_session() as session:
-#         async with session.begin():
-#             user = await get_user_by_tuid(tg_id=tg_id)
-#             await session.execute(update(SystemData).where(SystemData.id == user.system_id).values(bot_name=new_name))
-
-
-# #Save new content fot bot (bee_system)
-# async def edit_bee_system_content(tg_id, new_content):
-#     async with async_session() as session:
-#         async with session.begin():
-#             user = await get_user_by_tuid(tg_id=tg_id)
-#             await session.execute(update(SystemData).where(SystemData.id == user.system_id).values(bot_content=new_content))
-
-
-# # Get bot (bee_system) which user is using
-# async def get_bee_system(tg_id: int):
-#     async with async_session() as session:
-#         user = await get_user_by_tuid(tg_id=tg_id)
-#         system = await session.scalar(select(SystemData).where(SystemData.id == user.system_id))
-#         print(system)
-#         return system
-
-
-# # Get bot (bee_system) by id
-# async def get_bee_system_by_id(system_id: int):
-#     async with async_session() as session:
-#         system = await session.scalar(select(SystemData).where(SystemData.id == system_id))
-#         return system
-
-
-# # Set bot (bee_system) to public or private
-# async def switch_ispublic_bee_system(tg_id: int):
-#     async with async_session() as session:
-#         async with session.begin():
-#             user = await get_user_by_tuid(tg_id=tg_id)
-#             system = await session.scalar(select(SystemData).where(SystemData.id == user.system_id))
-#             # Switch the value of is_public
-#             switched = not system.is_public
-#             await session.execute(update(SystemData).where(SystemData.id == user.system_id).values(is_public=switched))
-
-
-# # Get list of all bots (bee_systems) of user and public bots
-# async def get_bee_system_list(tg_id: int):
-#     async with async_session() as session:
-#         user: User = await get_user_by_tuid(tg_id=tg_id)
-#         result = await session.scalars(select(SystemData).where(or_(SystemData.author_id == user.id, SystemData.is_public == True)).order_by(desc(SystemData.id)).limit(10))
-#         return result.all()
+# Delete /AI chat ChatHistory
+async def del_bee_ChatHistory(tg_id: int):
+    async with async_session() as session:
+        user: User = await get_user(tg_id=tg_id)
+        await session.execute(delete(ChatHistory).where(ChatHistory.u_id == user.id))
+        await session.commit()

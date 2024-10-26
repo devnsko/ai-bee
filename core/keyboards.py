@@ -1,7 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.database import requests as rq
-from core.database.models import SystemData, User
+from core.database.models import User, Bot
 
 #Cancel button
 cancel_button = KeyboardButton(text='Отмена')
@@ -14,10 +14,20 @@ project_info = InlineKeyboardBuilder([
 cancel_keyboard = ReplyKeyboardMarkup(keyboard=[[cancel_button]],
     resize_keyboard=True, one_time_keyboard=True)
 
+async def menu_buttons(tg_id):
+    user: User = await rq.get_user(tg_id)
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text='Project on GitHub', url=r'https://github.com/devnsko/ai-bee'))
+    if user.bot:
+        keyboard.add(InlineKeyboardButton(text='Your current Bot', callback_data='current_bot'))
+    else:
+        keyboard.add(InlineKeyboardButton(text='Create First Bot', callback_data='new_bot'))
+    keyboard.resize_keyboard = True
+    return keyboard.adjust(1).as_markup()
 
 # Inline keyboard with settings of user's bot
 async def bot_info_buttons(tg_id):
-    system: SystemData = await rq.get_bee_system(tg_id=tg_id)
+    system: Bot = await rq.get_bee_system(tg_id=tg_id)
     keyboard = InlineKeyboardBuilder()
     keyboard.add(InlineKeyboardButton(text=f'Edit name', callback_data=f'bot_edit_name'))
     keyboard.add(InlineKeyboardButton(text=f'Edit Setting', callback_data=f'bot_edit_setting'))
@@ -28,7 +38,7 @@ async def bot_info_buttons(tg_id):
 
 
 # Inline keyboard with list of bots
-async def get_bot_list(systems: list[SystemData]):
+async def get_bot_list(systems: list[Bot]):
     keyboard = InlineKeyboardBuilder()
     print(" BTN")
     if not systems:
@@ -41,7 +51,7 @@ async def get_bot_list(systems: list[SystemData]):
 
 
 # Inline keyboard with bot settings from list
-async def get_bot_settings(user: User, system: SystemData):
+async def get_bot_settings(user: User, system: Bot):
     keyboard = InlineKeyboardBuilder()
     if system.id != user.system_id:
         keyboard.add(InlineKeyboardButton(text=f'Подключить бота', callback_data=f'bot_connect_{system.id}'))
