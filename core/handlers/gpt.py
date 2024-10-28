@@ -12,10 +12,10 @@ async def generate(tg_id: int, user_message: str):
     user_message = user_message.strip()
     user = await rq.get_user(tg_id=tg_id)
     if user.context is None or user.context.strip() == "":
-        context = settings.basic.bot_context
+        context = ""
     else:
         context = user.context
-    histories = await rq.get_chat_history(tg_id=tg_id, u_limit=(settings.basic.memory_count))
+    histories = await rq.get_chat_history(tg_id=tg_id, u_limit=(settings.memory_count))
     messages: list[dict[str, str]] = [{"role": "system", "content": f"max 4096 symbols.\n\n{context}"}]
     if histories:
         for history in histories:

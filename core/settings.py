@@ -33,9 +33,9 @@ class Database:
 @dataclass
 class Settings:
     bots: Bots
-    basic: System
     project: Project
     database: Database
+    memory_count: int = 2
 
 def get_settings():
     load_dotenv()
@@ -45,11 +45,6 @@ def get_settings():
             bot_token=os.getenv("BEE_TOKEN"),
             admin_id=int(os.getenv("ADMIN_ID")),
             ai_token=os.getenv("AI_TOKEN")
-        ),
-        basic=System(
-            bot_name=os.getenv("BEE_BASIC_NAME"),
-            bot_context=os.getenv("BEE_BASIC_CONTEXT"),
-            memory_count=int(os.getenv("BEE_BASIC_MEMORY_COUNT"))
         ),
         project=Project(
             name=os.getenv("PROJECT_NAME"),
