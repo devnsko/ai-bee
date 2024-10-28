@@ -10,23 +10,19 @@ async def set_commands(bot: Bot):
         ),
         BotCommand(
             command='ai',
-            description='Издеваемся над OpenAI'
-        ),
-        BotCommand(
-            command='restart',
-            description='обновить чат'
+            description='talk to AI Bee'
         ),
         BotCommand(
             command='newbot',
-            description='добавить нового бота'
+            description='Add new bot'
         ),
         BotCommand(
             command='mybots',
-            description='список всех ботов'
+            description='List of your bots'
         ),
         BotCommand(
             command='botinfo',
-            description='инфо про текущего бота'
+            description='Info about your bot'
         )
     ]
 

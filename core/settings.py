@@ -12,15 +12,30 @@ class Bots:
 @dataclass
 class System:
     bot_name: str
-    bot_content: str
+    bot_context: str
     memory_count: int = 2
+
+@dataclass
+class Project:
+    name: str
+    description: str
+    link: str
+    link_text: str
+
+@dataclass
+class Database:
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
 
 @dataclass
 class Settings:
     bots: Bots
     basic: System
-    error: System
-
+    project: Project
+    database: Database
 
 def get_settings():
     load_dotenv()
@@ -33,14 +48,21 @@ def get_settings():
         ),
         basic=System(
             bot_name=os.getenv("BEE_BASIC_NAME"),
-            bot_content=os.getenv("BEE_BASIC_CONTENT"),
+            bot_context=os.getenv("BEE_BASIC_CONTEXT"),
             memory_count=int(os.getenv("BEE_BASIC_MEMORY_COUNT"))
         ),
-        error=System(
-            bot_name=os.getenv("BEE_ERROR_NAME"),
-            bot_content=os.getenv("BEE_ERROR_CONTENT"),
-            memory_count=int(os.getenv("BEE_ERROR_MEMORY_COUNT"))
-
+        project=Project(
+            name=os.getenv("PROJECT_NAME"),
+            description=os.getenv("PROJECT_DESCRIPTION"),
+            link=os.getenv("PROJECT_LINK"),
+            link_text=os.getenv("PROJECT_LINK_TEXT")
+        ),
+        database=Database(
+            host=os.getenv("DATABASE_HOST"),
+            port=int(os.getenv("DATABASE_PORT")),
+            user=os.getenv("DATABASE_USER"),
+            password=os.getenv("DATABASE_PASSWORD"),
+            database=os.getenv("DATABASE_NAME")
         )
     )
 
