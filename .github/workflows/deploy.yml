@@ -10,20 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-
       - name: Deploy to Server
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -34,10 +20,9 @@ jobs:
           script: |
             cd /opt/ai-bee
             git pull origin main
-            source venv/bin/activate
+            source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
             pip install -r requirements.txt
             
-            # Создание .env файла на сервере
             echo "BEE_TOKEN=${{ secrets.BEE_TOKEN }}" > .env
             echo "AI_TOKEN=${{ secrets.AI_TOKEN }}" >> .env
             echo "ADMIN_ID=${{ secrets.ADMIN_ID }}" >> .env
@@ -47,5 +32,4 @@ jobs:
             echo "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" >> .env
             echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> .env
             
-            # Перезапуск службы
             sudo systemctl restart aibee.service
