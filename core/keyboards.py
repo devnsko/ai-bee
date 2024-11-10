@@ -3,7 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from core.settings import settings
 
 #Cancel button
-cancel_button = KeyboardButton(text='Отмена')
+cancel_button = KeyboardButton(text='Cancel')
 
 # Reply keyboard with button "Cancel" for canceling the current operation
 async def edit_context_keyboard():

@@ -10,12 +10,6 @@ class Bots:
     ai_token: str
 
 @dataclass
-class System:
-    bot_name: str
-    bot_context: str
-    memory_count: int = 2
-
-@dataclass
 class Project:
     name: str
     description: str
@@ -46,18 +40,18 @@ def get_settings():
             admin_id=int(os.getenv("ADMIN_ID")),
             ai_token=os.getenv("AI_TOKEN")
         ),
-        project=Project(
-            name=os.getenv("PROJECT_NAME"),
-            description=os.getenv("PROJECT_DESCRIPTION"),
-            link=os.getenv("PROJECT_LINK"),
-            link_text=os.getenv("PROJECT_LINK_TEXT")
-        ),
         database=Database(
             host=os.getenv("DATABASE_HOST"),
             port=int(os.getenv("DATABASE_PORT")),
             user=os.getenv("DATABASE_USER"),
             password=os.getenv("DATABASE_PASSWORD"),
             database=os.getenv("DATABASE_NAME")
+        ),
+        project=Project(
+            name="Beehive",
+            description="AI bots with context in Telegram",
+            link="https://github.com/devnsko/ai-bee",
+            link_text="GitHub"
         )
     )
 
