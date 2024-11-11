@@ -19,8 +19,8 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd /opt/ai-bee
-            sudo git config --global safe.directory '*'
-            sudo git pull origin main
+            git config --global safe.directory '*'
+            git pull origin main
             source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
             pip install -r requirements.txt
             echo "BEE_TOKEN=${{ secrets.BEE_TOKEN }}" > .env
